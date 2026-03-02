@@ -1,0 +1,53 @@
+stages:
+  download_data:
+    cmd: python -c "from src.steps.ingest_data import download_cifar10; download_cifar10()"
+    deps:
+      - src/steps/ingest_data.py
+    outs:
+      - data/raw/cifar-10
+    params:
+      - data.dataset_name
+
+  preprocess_data:
+    cmd: python -c "from src.steps.preprocess import preprocess_cifar10; preprocess_cifar10()"
+    deps:
+      - data/raw/cifar-10
+      - src/steps/preprocess.py
+    outs:
+      - data/processed/train_images.npy
+      - data/processed/train_labels.npy
+      - data/processed/test_images.npy
+      - data/processed/test_labels.npy
+    params:
+      - preprocess.normalize
+      - preprocess.image_size
+
+  train:
+    cmd: python -m src.pipelines.training_pipeline
+    deps:
+      - data/processed/train_images.npy
+      - data/processed/train_labels.npy
+      - data/processed/test_images.npy
+      - data/processed/test_labels.npy
+      - src/pipelines/training_pipeline.py
+      - src/models/cnn_model.py
+    outs:
+      - models/trained_model.keras
+    params:
+      - train.epochs
+      - train.batch_size
+      - train.learning_rate
+      - train.architecture
+    metrics:
+      - metrics.json:
+          cache: false
+
+  monitor:
+    cmd: python -m src.pipelines.monitoring_pipeline
+    deps:
+      - models/trained_model.keras
+      - src/pipelines/monitoring_pipeline.py
+      - src/monitoring/evidently_monitor.py
+    outs:
+      - reports/drift_report.html
+      - reports/drift_report.json

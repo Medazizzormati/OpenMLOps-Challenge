@@ -1,0 +1,96 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Data (tracked by DVC)
+data/raw/
+data/processed/
+!data/.gitkeep
+
+# Models
+models/*.keras
+models/*.h5
+models/*.pb
+models/serving/
+!models/.gitkeep
+
+# Reports (generated)
+reports/*.html
+reports/*.json
+reports/*.png
+!reports/.gitkeep
+
+# Inference logs
+inference_logs/
+!inference_logs/.gitkeep
+
+# Artifacts
+artifacts/
+mlruns/
+mlartifacts/
+
+# Checkpoints
+checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+training_log.csv
+
+# DVC
+.dvc/cache/
+.dvc/tmp/
+
+# ZenML
+.zen/
+
+# Temporary files
+*.tmp
+*.temp
+retrain.trigger

@@ -1,0 +1,80 @@
+# Data parameters
+data:
+  dataset_name: cifar-10
+  validation_split: 0.1
+  random_seed: 42
+
+# Preprocessing parameters
+preprocess:
+  normalize: true
+  image_size: [32, 32, 3]
+  augmentation: true
+
+# Training parameters
+train:
+  epochs: 50
+  batch_size: 64
+  learning_rate: 0.001
+  optimizer: adam
+  loss: sparse_categorical_crossentropy
+  architecture:
+    type: cnn
+    conv_layers:
+      - filters: 32
+        kernel_size: 3
+        activation: relu
+        pooling: max
+      - filters: 64
+        kernel_size: 3
+        activation: relu
+        pooling: max
+      - filters: 128
+        kernel_size: 3
+        activation: relu
+        pooling: max
+    dense_layers:
+      - units: 256
+        activation: relu
+        dropout: 0.5
+      - units: 128
+        activation: relu
+        dropout: 0.3
+    output:
+      units: 10
+      activation: softmax
+  early_stopping:
+    patience: 10
+    monitor: val_loss
+  model_checkpoint:
+    monitor: val_accuracy
+    mode: max
+
+# Evaluation parameters
+evaluate:
+  metrics:
+    - accuracy
+    - precision
+    - recall
+    - f1_score
+  confusion_matrix: true
+
+# Monitoring parameters
+monitoring:
+  drift_threshold: 0.05
+  reference_data_size: 1000
+  inference_data_window: 7
+  alerts:
+    email_enabled: false
+    slack_enabled: false
+  retrain:
+    auto_trigger: true
+    min_samples: 500
+
+# MLflow parameters
+mlflow:
+  experiment_name: cifar10_cnn_classifier
+  run_name_prefix: training_run
+
+# ZenML parameters
+zenml:
+  stack_name: mlops_stack

@@ -1,0 +1,175 @@
+version: '3.8'
+
+services:
+  # MinIO - S3-compatible object storage for DVC
+  minio:
+    image: minio/minio:latest
+    container_name: openmlops-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - mlops-network
+
+  # MLflow - Experiment tracking server
+  mlflow:
+    build:
+      context: ./docker/mlflow
+      dockerfile: Dockerfile
+    container_name: openmlops-mlflow
+    ports:
+      - "5000:5000"
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=postgresql://mlflow:mlflow123@postgres:5432/mlflow
+      - MLFLOW_ARTIFACT_ROOT=/mlflow/artifacts
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin123
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+    volumes:
+      - mlflow_artifacts:/mlflow/artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - mlops-network
+
+  # PostgreSQL - Database for MLflow and ZenML
+  postgres:
+    image: postgres:15-alpine
+    container_name: openmlops-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: zenml
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mlops-network
+
+  # ZenML Server - Pipeline orchestration
+  zenml:
+    build:
+      context: ./docker/zenml
+      dockerfile: Dockerfile
+    container_name: openmlops-zenml
+    ports:
+      - "8080:8080"
+    environment:
+      - ZENML_DATABASE_URL=postgresql://zenml:zenml123@postgres:5432/zenml
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - zenml_data:/root/.zenml
+    networks:
+      - mlops-network
+
+  # Training Pipeline Container
+  training-pipeline:
+    build:
+      context: .
+      dockerfile: docker/training/Dockerfile
+    container_name: openmlops-training
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin123
+      - ZENML_DATABASE_URL=postgresql://zenml:zenml123@postgres:5432/zenml
+      - DVC_REMOTE_URL=s3://mlops-data
+      - DVC_S3_ENDPOINT_URL=http://minio:9000
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./configs:/app/configs
+      - ./dvc.yaml:/app/dvc.yaml
+      - ./params.yaml:/app/params.yaml
+    depends_on:
+      - mlflow
+      - zenml
+      - minio
+    networks:
+      - mlops-network
+    profiles:
+      - training
+
+  # Monitoring Pipeline Container
+  monitoring-pipeline:
+    build:
+      context: .
+      dockerfile: docker/monitoring/Dockerfile
+    container_name: openmlops-monitoring
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin123
+      - ZENML_DATABASE_URL=postgresql://zenml:zenml123@postgres:5432/zenml
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./reports:/app/reports
+      - ./configs:/app/configs
+    depends_on:
+      - mlflow
+      - zenml
+    networks:
+      - mlops-network
+    profiles:
+      - monitoring
+
+  # Jupyter Notebook for interactive development
+  jupyter:
+    build:
+      context: .
+      dockerfile: docker/jupyter/Dockerfile
+    container_name: openmlops-jupyter
+    ports:
+      - "8888:8888"
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin123
+      - ZENML_DATABASE_URL=postgresql://zenml:zenml123@postgres:5432/zenml
+    volumes:
+      - .:/app
+    depends_on:
+      - mlflow
+      - zenml
+      - minio
+    networks:
+      - mlops-network
+    profiles:
+      - dev
+
+volumes:
+  minio_data:
+  mlflow_artifacts:
+  postgres_data:
+  zenml_data:
+
+networks:
+  mlops-network:
+    driver: bridge

@@ -1,0 +1,55 @@
+# Configuration for the MLOps project
+project:
+  name: OpenMLOps-CIFAR10-CNN
+  version: 1.0.0
+  description: CNN Image Classifier with MLOps workflow
+
+# Service URLs (for Docker environment)
+services:
+  mlflow:
+    host: mlflow
+    port: 5000
+    tracking_uri: http://mlflow:5000
+  
+  minio:
+    host: minio
+    port: 9000
+    endpoint_url: http://minio:9000
+    access_key: minioadmin
+    secret_key: minioadmin123
+    bucket: mlops-data
+  
+  zenml:
+    host: zenml
+    port: 8080
+
+# Data paths
+paths:
+  raw_data: data/raw
+  processed_data: data/processed
+  models: models
+  artifacts: artifacts
+  reports: reports
+  inference_logs: inference_logs
+
+# CIFAR-10 classes
+cifar10:
+  classes:
+    - airplane
+    - automobile
+    - bird
+    - cat
+    - deer
+    - dog
+    - frog
+    - horse
+    - ship
+    - truck
+  num_classes: 10
+  image_shape: [32, 32, 3]
+
+# Model serving
+serving:
+  model_name: cifar10_classifier
+  model_version: 1
+  serving_port: 8501
