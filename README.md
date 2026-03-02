@@ -492,13 +492,7 @@ python -m src.pipelines.training_pipeline
 | MLflow UI | http://localhost:5000 | - |
 | ZenML Dashboard | http://localhost:8080 | - |
 
-## 📧 Contact
 
-**Email:** salah.gontara@polytecsousse.tn
-
-**Organization:** Ecole Polytechnique de Sousse
-
-**Prize:** 500 DT
 
 ## 📄 License
 
